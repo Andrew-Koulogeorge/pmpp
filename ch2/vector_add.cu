@@ -7,6 +7,17 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
+// NOTE: preprocessor in C is very turse. just doing copy paste
+#define CUDA_CHECK(call)                                                       \
+    do {                                                                       \
+        cudaError_t err = call;                                                \
+        if (err != cudaSuccess) {                                              \
+            fprintf(stderr, "CUDA error in %s at line %d: %s\n",               \
+                    __FILE__, __LINE__, cudaGetErrorString(err));              \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
+    } while (0)
+
 // device method that computes element wise addition between vectors
  __global__ 
  void vecAddKernel(float *A, float *B, float *C, int n){
@@ -18,35 +29,37 @@
  }
 
  // host method vecAdd to handle device allocation and copying
+ __host__
  void vecAdd(float *A_h, float *B_h, float *C_h, int n){
     
     // allocate memory on the GPU for A_d,B_d,C_d
     int size = n*sizeof(float);
     float *A_d, *B_d, *C_d;
-    cudaMalloc((void **) &A_d, size);
-    cudaMalloc((void **) &B_d, size);
-    cudaMalloc((void **) &C_d, size);
+    CUDA_CHECK(cudaMalloc((void **) &A_d, size));
+    CUDA_CHECK(cudaMalloc((void **) &B_d, size));
+    CUDA_CHECK(cudaMalloc((void **) &C_d, size));
 
     // copy memory from host to device
-    cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice);
+    CUDA_CHECK(cudaMemcpy(A_d, A_h, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(B_d, B_h, size, cudaMemcpyHostToDevice));
 
     // launch kernel with correct number of blocks
     int block_size = 32;
     int num_blocks = ceil(n / (double)block_size);
-    printf("num_blocks: %d | block_suze: %d", num_blocks, block_size)
+    printf("num_blocks: %d | block_suze: %d", num_blocks, block_size);
     vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n);
 
     // copy memory of output C_d -> C_h
-    cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost);
+    CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
 
     // free all memory on device
-    cudaFree(A_d);
-    cudaFree(B_d);
-    cudaFree(C_d);
+    CUDA_CHECK(cudaFree(A_d));
+    CUDA_CHECK(cudaFree(B_d));
+    CUDA_CHECK(cudaFree(C_d));
  }
 
   // main method to allocate arrays on host to be added together
+  __host__
  int main(int argc, char* argv[]){
     if (argc != 2){
         return -1;
@@ -66,6 +79,7 @@
 
     // allocate empty result array
     float *C_h = (float*) malloc(size);
+    memset(C_h, -1, size);
 
     // call vecAdd stub
     vecAdd(A_h,B_h,C_h,n);
