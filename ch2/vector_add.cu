@@ -1,6 +1,10 @@
 /**
  * Hello World for CUDA 
  * Program for element wise addition 
+ * 
+ * NOTE: Ensure that the nvcc compiler is aligned with the specifc GPU architecture
+ * I was getting a silent error when launching the add kernel because of a mismatch
+ * for colab instances running T4, "-arch=sm_75" resolved the silent error
  */
 
 #include <cstdlib>
@@ -62,8 +66,9 @@
     // launch kernel with correct number of blocks
     int block_size = 32;
     int num_blocks = ceil(n / (double)block_size);
-    printf("num_blocks: %d | block_size: %d", num_blocks, block_size);
-    CUDA_CHECK_KERNEL(vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n));
+    printf("num_blocks: %d | block_size: %d\n", num_blocks, block_size);
+    vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n);
+    CUDA_CHECK_KERNEL();
 
     // copy memory of output C_d -> C_h
     CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
@@ -101,6 +106,11 @@
     vecAdd(A_h,B_h,C_h,n);
 
     // print out the values of A,B and C
+    printf("Printing first 5 values: \n");
+    for(int i = 0; i < 5; i++){
+        printf("%.0f + %.0f = %.0f\n", A_h[i], B_h[i], C_h[i]);
+    }
+
     printf("Printing last 5 values: \n");
     for(int i = n-5; i < n; i++){
         printf("%.0f + %.0f = %.0f\n", A_h[i], B_h[i], C_h[i]);
