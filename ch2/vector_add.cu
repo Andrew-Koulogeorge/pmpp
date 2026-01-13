@@ -18,6 +18,22 @@
         }                                                                      \
     } while (0)
 
+#define CUDA_CHECK_KERNEL()                                                    \
+    do {                                                                       \
+        cudaError_t err = cudaGetLastError();                                  \
+        if (err != cudaSuccess) {                                              \
+            fprintf(stderr, "Kernel launch error in %s at line %d: %s\n",      \
+                    __FILE__, __LINE__, cudaGetErrorString(err));              \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
+        err = cudaDeviceSynchronize();                                         \
+        if (err != cudaSuccess) {                                              \
+            fprintf(stderr, "Kernel execution error in %s at line %d: %s\n",   \
+                    __FILE__, __LINE__, cudaGetErrorString(err));              \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
+    } while (0)
+
 // device method that computes element wise addition between vectors
  __global__ 
  void vecAddKernel(float *A, float *B, float *C, int n){
@@ -46,8 +62,8 @@
     // launch kernel with correct number of blocks
     int block_size = 32;
     int num_blocks = ceil(n / (double)block_size);
-    printf("num_blocks: %d | block_suze: %d", num_blocks, block_size);
-    vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n);
+    printf("num_blocks: %d | block_size: %d", num_blocks, block_size);
+    CUDA_CHECK_KERNEL(vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n));
 
     // copy memory of output C_d -> C_h
     CUDA_CHECK(cudaMemcpy(C_h, C_d, size, cudaMemcpyDeviceToHost));
