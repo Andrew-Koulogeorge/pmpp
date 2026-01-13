@@ -34,6 +34,7 @@
     // launch kernel with correct number of blocks
     int block_size = 32;
     int num_blocks = ceil(n / (double)block_size);
+    printf("num_blocks: %d | block_suze: %d", num_blocks, block_size)
     vecAddKernel<<<num_blocks, block_size>>>(A_d, B_d, C_d, n);
 
     // copy memory of output C_d -> C_h
