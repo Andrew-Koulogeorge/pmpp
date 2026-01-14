@@ -100,8 +100,7 @@
 
     // allocate empty result array
     float *C_h = (float*) malloc(size);
-    memset(C_h, -1, size);
-
+    
     // call vecAdd stub
     vecAdd(A_h,B_h,C_h,n);
 
